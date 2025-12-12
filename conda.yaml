@@ -1,11 +1,17 @@
-name: total-spent-env
-channels:
-  - conda-forge
-dependencies:
-  - python=3.10
-  - pip
-  - pip:
-      - mlflow
-      - scikit-learn
-      - pandas
-      - numpy
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.10
+          activate-environment: base
+
+      - name: Run MLflow project
+        run: mlflow run .
