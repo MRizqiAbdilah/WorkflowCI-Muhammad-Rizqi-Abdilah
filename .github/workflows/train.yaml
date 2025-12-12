@@ -60,7 +60,7 @@ jobs:
       - name: Build Docker Image from MLflow Model
         run: |
           mlflow models build-docker \
-            -m mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/model \
+            -m mlruns/1/${{ steps.get_run.outputs.run_id }} \
             -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
 
       - name: Login to Docker Hub
