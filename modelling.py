@@ -7,10 +7,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 def main(data_path):
-    # Set experiment (boleh tetap ada, aman)
-    mlflow.set_experiment("default")
-
-    # Tidak boleh start_run manual kalau pakai `mlflow run`
     mlflow.sklearn.autolog()
 
     df = pd.read_csv(data_path)
@@ -24,14 +20,8 @@ def main(data_path):
     model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
 
-    # log model (sekarang otomatis masuk ke run)
-    mlflow.sklearn.log_model(model, name="model")
-
     preds = model.predict(X_test)
     mse = mean_squared_error(y_test, preds)
-
-    # log metric
-    mlflow.log_metric("mse", mse)
 
     print("MSE:", mse)
 
