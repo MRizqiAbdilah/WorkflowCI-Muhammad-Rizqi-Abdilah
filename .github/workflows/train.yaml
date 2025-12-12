@@ -19,9 +19,10 @@ jobs:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: true
-          python-version: 3.10
-          activate-environment: base
+          auto-update-conda: false
+          channels: conda-forge
+          channel-priority: strict
+          activate-environment: ""
 
       - name: Install Dependencies
         run: |
