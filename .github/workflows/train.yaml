@@ -11,16 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
-        run: echo "Starting MLflow training workflow..."
-
-      - name: Run actions/checkout@v3
+      - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12.7
+      - name: Set up Python 3.12
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12.7"
+          python-version: "3.12"
 
       - name: Check Env
         run: |
@@ -30,23 +27,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install mlflow[extras]
+          pip install "mlflow[extras]"
 
       - name: Set MLflow Tracking URI
-        run: |
-          export MLFLOW_TRACKING_URI=./mlruns
-          echo "MLflow Tracking URI set to ./mlruns"
+        run: echo "MLFLOW_TRACKING_URI=./mlruns" >> $GITHUB_ENV
 
       - name: Run mlflow project
-        run: |
-          mlflow run . --env-manager=local
+        run: mlflow run . --env-manager=local
 
-      - name: Get latest MLflow run_id
+      - name: Get latest MLflow run ID
         id: get_run
         run: |
           RUN_ID=$(ls -t mlruns/0 | head -1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "Latest run ID is $RUN_ID"
+          echo "Latest run ID: $RUN_ID"
 
       - name: Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
@@ -58,11 +52,15 @@ jobs:
       # BUILD DOCKER IMAGE DARI MODEL MLFLOW
       # =============================================================
 
-      - name: Build Docker Image from MLflow Model
+      - name: Generate Dockerfile using MLflow
         run: |
-          mlflow models build-docker \
+          mlflow models prepare-docker \
             -m mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/model \
-            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
+            --output-dir mlflow_docker
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }} mlflow_docker
 
       # =============================================================
       # LOGIN & PUSH KE DOCKER HUB
@@ -77,8 +75,6 @@ jobs:
       - name: Push Docker Image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
-
-      # =============================================================
 
       - name: Complete job
         run: echo "Job completed successfully!"
