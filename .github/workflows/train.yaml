@@ -6,36 +6,38 @@ on:
       - "**.py"
       - "MLproject"
       - "conda.yaml"
+      - "requirements.txt"
 
 jobs:
   train:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Set up job
+        run: echo "Starting MLflow training workflow..."
+
+      - name: Run actions/checkout@v3
         uses: actions/checkout@v3
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Set up Python 3.12.7
+        uses: actions/setup-python@v4
         with:
-          activate-environment: ""
-          channels: conda-forge
-          auto-update-conda: false
-          channel-priority: strict
-          python-version: "3.10"
+          python-version: "3.12.7"
 
-      - name: Initialize conda
-        shell: bash -l {0}
+      - name: Check Env
         run: |
-          conda init bash
-          source ~/.bashrc
+          python --version
+          pip --version
 
-      - name: Install deps for MLproject
-        shell: bash -l {0}
+      - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Run MLflow project
-        shell: bash -l {0}
+      - name: Run mlflow project
         run: |
-          mlflow run .
+          mlflow run . --no-conda
+
+      - name: Get latest MLflow run_id
+        run: |
+          echo "LATEST RUN:"
+          ls -t mlruns/0 | head -1
