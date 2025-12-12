@@ -2,11 +2,9 @@ name: Train ML Model (MLflow)
 
 on:
   push:
-    paths:
-      - "**.py"
-      - "MLproject"
-      - "conda.yaml"
-      - "requirements.txt"
+    branches:
+      - main
+      - master
 
 jobs:
   train:
