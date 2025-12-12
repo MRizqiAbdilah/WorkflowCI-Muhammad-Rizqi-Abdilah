@@ -48,7 +48,7 @@ jobs:
           echo "Latest run ID is $RUN_ID"
 
       - name: Upload MLflow Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
           path: mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/
