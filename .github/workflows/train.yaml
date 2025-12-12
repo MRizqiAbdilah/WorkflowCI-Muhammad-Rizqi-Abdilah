@@ -1,7 +1,6 @@
 name: Train ML Model (MLflow)
 
 on:
-  workflow_dispatch: # manual trigger
   push:
     paths:
       - "**.py"
