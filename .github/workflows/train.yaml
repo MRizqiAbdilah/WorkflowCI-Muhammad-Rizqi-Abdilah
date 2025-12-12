@@ -15,18 +15,27 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install Conda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: false
-          channels: conda-forge
-          channel-priority: strict
           activate-environment: ""
+          channels: conda-forge
+          auto-update-conda: false
+          channel-priority: strict
+          python-version: "3.10"
 
-      - name: Install Dependencies
+      - name: Initialize conda
+        shell: bash -l {0}
+        run: |
+          conda init bash
+          source ~/.bashrc
+
+      - name: Install deps for MLproject
+        shell: bash -l {0}
         run: |
           pip install -r requirements.txt
 
       - name: Run MLflow project
+        shell: bash -l {0}
         run: |
           mlflow run .
