@@ -20,6 +20,9 @@ def main(data_path):
     model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
 
+    mlflow.sklearn.log_model(model, "model")
+
+
     preds = model.predict(X_test)
     mse = mean_squared_error(y_test, preds)
 
