@@ -31,11 +31,27 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Set MLflow Tracking URI
+        run: |
+          export MLFLOW_TRACKING_URI=./mlruns
+          echo "MLflow Tracking URI set to ./mlruns"
+
       - name: Run mlflow project
         run: |
           mlflow run . --env-manager=local
 
       - name: Get latest MLflow run_id
+        id: get_run
         run: |
-          echo "LATEST RUN:"
-          ls -t mlruns/0 | head -1
+          RUN_ID=$(ls -t mlruns/0 | head -1)
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "Latest run ID is $RUN_ID"
+
+      - name: Upload MLflow Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlflow-artifacts
+          path: mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/
+
+      - name: Complete job
+        run: echo "Job completed successfully!"
