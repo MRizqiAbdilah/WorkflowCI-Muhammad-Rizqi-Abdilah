@@ -14,23 +14,33 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Install Miniconda
+      - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: false
+          auto-update-conda: true
+          activate-environment: stroke-env
+          environment-file: conda.yaml
           python-version: 3.10
-          channels: conda-forge
-          activate-environment: ""
 
-      - name: Show Conda Info
+      - name: Verify conda + python
+        shell: bash -l {0}
         run: |
-          conda --version
-          conda env list
+          conda info
+          which python
+          python --version
 
-      - name: Run MLflow project (create conda env)
-        run: mlflow run .
+      - name: Install dependencies (if needed)
+        shell: bash -l {0}
+        run: |
+          pip install -r requirements.txt
 
-      - name: Get latest MLflow run_id
+      - name: Run MLflow project using conda
+        shell: bash -l {0}
+        run: |
+          mlflow run . --env-manager=conda
+
+      - name: Show latest MLflow run
+        shell: bash -l {0}
         run: |
           echo "LATEST RUN:"
           ls -t mlruns/0 | head -1
