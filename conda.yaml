@@ -1,10 +1,10 @@
-name: mlflow-env
+name: stroke-env
 channels:
   - conda-forge
 dependencies:
   - python=3.10
-  - scikit-learn
-  - pandas
   - pip
   - pip:
       - mlflow
+      - pandas
+      - scikit-learn

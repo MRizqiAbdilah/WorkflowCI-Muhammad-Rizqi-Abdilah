@@ -11,29 +11,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
-        run: echo "Starting MLflow training workflow..."
-
-      - name: Run actions/checkout@v3
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12.7
-        uses: actions/setup-python@v4
+      - name: Install Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: "3.12.7"
+          auto-update-conda: false
+          python-version: 3.10
+          channels: conda-forge
+          activate-environment: ""
 
-      - name: Check Env
+      - name: Show Conda Info
         run: |
-          python --version
-          pip --version
+          conda --version
+          conda env list
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Run mlflow project
-        run: |
-          mlflow run .
+      - name: Run MLflow project (create conda env)
+        run: mlflow run .
 
       - name: Get latest MLflow run_id
         run: |
