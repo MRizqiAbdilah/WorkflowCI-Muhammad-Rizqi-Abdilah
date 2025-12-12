@@ -1,0 +1,32 @@
+name: Train ML Model (MLflow)
+
+on:
+  workflow_dispatch: # manual trigger
+  push:
+    paths:
+      - "**.py"
+      - "MLproject"
+      - "conda.yaml"
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: 3.10
+          activate-environment: base
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run MLflow project
+        run: |
+          mlflow run .
