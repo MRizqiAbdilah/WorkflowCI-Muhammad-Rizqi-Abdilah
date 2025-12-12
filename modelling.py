@@ -7,26 +7,34 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
 def main(data_path):
-    mlflow.sklearn.autolog()
+    # Set experiment (opsional tapi bagus)
+    mlflow.set_experiment("default")
 
-    df = pd.read_csv(data_path)
-    X = df.drop(columns=["TotalSpent_Bin", "Transaction Date", "Total Spent"])
-    y = df["Total Spent"]
+    # WAJIB: pastikan semua log masuk ke run yang benar
+    with mlflow.start_run():
+        mlflow.sklearn.autolog()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+        df = pd.read_csv(data_path)
+        X = df.drop(columns=["TotalSpent_Bin", "Transaction Date", "Total Spent"])
+        y = df["Total Spent"]
 
-    model = RandomForestRegressor(random_state=42)
-    model.fit(X_train, y_train)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=0.2, random_state=42
+        )
 
-    mlflow.sklearn.log_model(model, "model")
+        model = RandomForestRegressor(random_state=42)
+        model.fit(X_train, y_train)
 
+        # Log model ke MLflow → ini sekarang MASUK ke artifacts/model/
+        mlflow.sklearn.log_model(model, "model")
 
-    preds = model.predict(X_test)
-    mse = mean_squared_error(y_test, preds)
+        preds = model.predict(X_test)
+        mse = mean_squared_error(y_test, preds)
 
-    print("MSE:", mse)
+        # Log metric
+        mlflow.log_metric("mse", mse)
+
+        print("MSE:", mse)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

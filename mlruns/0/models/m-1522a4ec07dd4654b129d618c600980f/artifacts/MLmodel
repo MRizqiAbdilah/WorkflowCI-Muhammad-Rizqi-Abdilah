@@ -1,0 +1,21 @@
+artifact_path: /home/shadow/Applications/ASAH/Workflow-CI/mlruns/0/models/m-1522a4ec07dd4654b129d618c600980f/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.7
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+mlflow_version: 3.7.0
+model_id: m-1522a4ec07dd4654b129d618c600980f
+model_size_bytes: 1007808
+model_uuid: m-1522a4ec07dd4654b129d618c600980f
+prompts: null
+utc_time_created: '2025-12-12 18:24:17.900434'
