@@ -26,27 +26,22 @@ jobs:
         run: |
           python --version
           pip --version
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
       - name: Set MLflow Tracking URI
         run: |
           export MLFLOW_TRACKING_URI=./mlruns
           echo "MLflow Tracking URI set to ./mlruns"
-
       - name: Run mlflow project
         run: |
           mlflow run . --env-manager=local
-
       - name: Get latest MLflow run_id
         id: get_run
         run: |
           RUN_ID=$(ls -t mlruns/0 | grep -E '^[a-f0-9]{32}$' | head -1)
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest run ID is $RUN_ID"
-
       - name: Upload MLflow Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -60,20 +55,17 @@ jobs:
       - name: Install MLflow Docker extras
         run: |
           pip install mlflow[extras]
-
       - name: Get latest model version
         id: get_model
         run: |
           MODEL_ID=$(ls -t mlruns/0/models | grep -E '^m-[a-f0-9]{32}$' | head -1)
           echo "model_id=$MODEL_ID" >> $GITHUB_OUTPUT
           echo "Latest model ID is $MODEL_ID"
-
       - name: Build Docker Image from MLflow Model
         run: |
           mlflow models build-docker \
             -m mlruns/0/models/${{ steps.get_model.outputs.model_id }}/artifacts \
             -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
-
       # =============================================================
       # PUSH DOCKER IMAGE KE DOCKER HUB
       # =============================================================
@@ -87,8 +79,6 @@ jobs:
       - name: Push Docker Image to Docker Hub
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
-
       # =============================================================
-
       - name: Complete job
         run: echo "Job completed successfully!"
