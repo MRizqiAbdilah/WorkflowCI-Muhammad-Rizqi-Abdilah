@@ -2,9 +2,7 @@ name: Train ML Model (MLflow)
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
 
 jobs:
   train:
@@ -14,22 +12,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12.7
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
 
-      - name: Check environment
-        run: |
-          python --version
-          pip --version
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install mlflow[extras]
 
       # =============================================================
-      # MLflow SETUP (WAJIB DI CI)
+      # MLflow SETUP
       # =============================================================
 
       - name: Set MLflow Tracking URI
@@ -42,11 +36,11 @@ jobs:
           import mlflow
           mlflow.set_tracking_uri("file:${{ github.workspace }}/mlruns")
           mlflow.set_experiment("default")
-          print("MLflow experiment initialized")
+          print("MLflow experiment ready")
           EOF
 
       # =============================================================
-      # TRAIN MODEL (TANPA mlflow run)
+      # TRAIN MODEL
       # =============================================================
 
       - name: Train model
@@ -54,42 +48,68 @@ jobs:
           python modelling.py --data_path clean_dataset.csv
 
       # =============================================================
-      # UPLOAD ARTIFACT
+      # GET RUN_ID (AMAN, CI-SAFE)
       # =============================================================
 
       - name: Get latest MLflow run_id
         id: get_run
         run: |
-          RUN_ID=$(ls -t mlruns/0 | grep -E '^[a-f0-9]{32}$' | head -1)
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "Latest run ID: $RUN_ID"
+          python - <<EOF
+          import mlflow
+          from mlflow.tracking import MlflowClient
 
-      - name: Upload MLflow Artifacts
+          mlflow.set_tracking_uri("file:./mlruns")
+          client = MlflowClient()
+
+          runs = client.search_runs(
+              experiment_ids=["0"],
+              order_by=["attributes.start_time DESC"],
+              max_results=1
+          )
+
+          if not runs:
+              raise Exception("No MLflow run found")
+
+          run_id = runs[0].info.run_id
+          print("Run ID:", run_id)
+
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"run_id={run_id}\n")
+          EOF
+
+      # =============================================================
+      # UPLOAD ARTIFACT
+      # =============================================================
+
+      - name: Upload MLflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
           path: mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/
 
       # =============================================================
-      # BUILD DOCKER IMAGE DARI MODEL
+      # BUILD DOCKER IMAGE (BENAR)
       # =============================================================
 
-      - name: Install MLflow Docker extras
-        run: |
-          pip install mlflow[extras]
-
-      - name: Get latest model directory
+      - name: Get model directory
         id: get_model
         run: |
-          MODEL_DIR=$(find mlruns -type d -name "model" | head -1)
+          MODEL_DIR="mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/model"
+          if [ ! -d "$MODEL_DIR" ]; then
+            echo "Model directory not found!"
+            exit 1
+          fi
           echo "model_dir=$MODEL_DIR" >> $GITHUB_OUTPUT
           echo "Model dir: $MODEL_DIR"
 
-      - name: Build Docker Image
+      - name: Build Docker image
         run: |
+          IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}"
+          echo "Building image: $IMAGE_NAME"
+
           mlflow models build-docker \
-            -m ${{ steps.get_model.outputs.model_dir }} \
-            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
+            --model-uri ${{ steps.get_model.outputs.model_dir }} \
+            --name $IMAGE_NAME
 
       # =============================================================
       # PUSH KE DOCKER HUB
@@ -101,9 +121,9 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push Docker Image
+      - name: Push Docker image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
 
       - name: Done
-        run: echo "✅ Training & deployment completed"
+        run: echo "✅ MLflow CI/CD pipeline SUCCESS"
