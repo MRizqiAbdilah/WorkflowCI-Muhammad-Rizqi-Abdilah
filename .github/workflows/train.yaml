@@ -61,8 +61,12 @@ jobs:
           mlflow.set_tracking_uri("file:./mlruns")
           client = MlflowClient()
 
+          exp = client.get_experiment_by_name("default")
+          if exp is None:
+              raise Exception("Experiment 'default' not found")
+
           runs = client.search_runs(
-              experiment_ids=["0"],
+              experiment_ids=[exp.experiment_id],
               order_by=["attributes.start_time DESC"],
               max_results=1
           )
@@ -76,7 +80,6 @@ jobs:
           with open("$GITHUB_OUTPUT", "a") as f:
               f.write(f"run_id={run_id}\n")
           EOF
-
       # =============================================================
       # UPLOAD ARTIFACT
       # =============================================================
