@@ -8,6 +8,9 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import numpy as np
 
 def main(data_path):
+    # Pastikan MLflow pakai folder yang writable
+    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "./mlruns")
+    mlflow.set_tracking_uri(mlflow_tracking_uri)
     # Start MLflow run
     with mlflow.start_run() as run:
         # Enable autolog for automatic logging
