@@ -31,12 +31,16 @@ jobs:
           echo "MLFLOW_TRACKING_URI=file:${{ github.workspace }}/mlruns" >> $GITHUB_ENV
 
       - name: Initialize MLflow Experiment
+        id: exp
         run: |
           python - <<EOF
           import mlflow
           mlflow.set_tracking_uri("file:${{ github.workspace }}/mlruns")
-          mlflow.set_experiment("default")
-          print("MLflow experiment ready")
+          exp = mlflow.set_experiment("default")
+          print("Experiment ID:", exp.experiment_id)
+
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"experiment_id={exp.experiment_id}\n")
           EOF
 
       # =============================================================
@@ -61,12 +65,10 @@ jobs:
           mlflow.set_tracking_uri("file:./mlruns")
           client = MlflowClient()
 
-          exp = client.get_experiment_by_name("default")
-          if exp is None:
-              raise Exception("Experiment 'default' not found")
+          exp_id = "${{ steps.exp.outputs.experiment_id }}"
 
           runs = client.search_runs(
-              experiment_ids=[exp.experiment_id],
+              experiment_ids=[exp_id],
               order_by=["attributes.start_time DESC"],
               max_results=1
           )
@@ -80,6 +82,7 @@ jobs:
           with open("$GITHUB_OUTPUT", "a") as f:
               f.write(f"run_id={run_id}\n")
           EOF
+
       # =============================================================
       # UPLOAD ARTIFACT
       # =============================================================
@@ -88,7 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
-          path: mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/
+          path: mlruns/${{ steps.exp.outputs.experiment_id }}/${{ steps.get_run.outputs.run_id }}/artifacts/
 
       # =============================================================
       # BUILD DOCKER IMAGE (BENAR)
@@ -97,11 +100,14 @@ jobs:
       - name: Get model directory
         id: get_model
         run: |
-          MODEL_DIR="mlruns/0/${{ steps.get_run.outputs.run_id }}/artifacts/model"
+          MODEL_DIR="mlruns/${{ steps.exp.outputs.experiment_id }}/${{ steps.get_run.outputs.run_id }}/artifacts/model"
+
           if [ ! -d "$MODEL_DIR" ]; then
             echo "Model directory not found!"
+            find mlruns -maxdepth 4 -type d
             exit 1
           fi
+
           echo "model_dir=$MODEL_DIR" >> $GITHUB_OUTPUT
           echo "Model dir: $MODEL_DIR"
 
