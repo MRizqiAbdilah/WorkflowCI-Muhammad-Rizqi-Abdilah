@@ -6,21 +6,23 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import numpy as np
-import os
-
+from mlflow.models.signature import infer_signature
 
 
 def main(data_path):
-    # Pastikan MLflow pakai folder yang writable
-    mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "./mlruns")
-    mlflow.set_tracking_uri(mlflow_tracking_uri)
-    # Start MLflow run
-    with mlflow.start_run() as run:
-        # Enable autolog for automatic logging
-        mlflow.sklearn.autolog()
+    # =============================================================
+    # MLflow setup (WAJIB untuk CI)
+    # =============================================================
+    mlflow.set_tracking_uri("file:./mlruns")
+    mlflow.set_experiment("default")
 
+    # Enable autolog BEFORE run
+    mlflow.sklearn.autolog()
+
+    with mlflow.start_run() as run:
         # Load data
         df = pd.read_csv(data_path)
+
         X = df.drop(columns=["TotalSpent_Bin", "Transaction Date", "Total Spent"])
         y = df["Total Spent"]
 
@@ -30,44 +32,41 @@ def main(data_path):
         )
 
         # Train model
-        model = RandomForestRegressor(random_state=42, n_estimators=100)
+        model = RandomForestRegressor(
+            random_state=42,
+            n_estimators=100
+        )
         model.fit(X_train, y_train)
 
-        # Make predictions
+        # Predict
         preds = model.predict(X_test)
-        
-        # Calculate metrics
+
+        # Metrics
         mse = mean_squared_error(y_test, preds)
-        rmse = np.sqrt(mse)  # Calculate RMSE manually
+        rmse = np.sqrt(mse)
         mae = mean_absolute_error(y_test, preds)
         r2 = r2_score(y_test, preds)
 
-        # Log additional metrics (autolog already logs many metrics)
-        mlflow.log_metric("mse", mse)
+        # Log extra metrics (optional, tapi oke untuk tugas)
         mlflow.log_metric("rmse", rmse)
         mlflow.log_metric("mae", mae)
         mlflow.log_metric("r2_score", r2)
 
-        # Log parameters
-        mlflow.log_param("test_size", 0.2)
-        mlflow.log_param("random_state", 42)
-
-        # Explicitly log the model with signature for production use
-        from mlflow.models.signature import infer_signature
+        # Signature
         signature = infer_signature(X_train, model.predict(X_train))
-        
+
+        # Log model (TANPA registry)
         mlflow.sklearn.log_model(
             sk_model=model,
-            name="model",
-            signature=signature,
-            registered_model_name="RandomForestRegressor"
+            artifact_path="model",
+            signature=signature
         )
 
         print(f"Run ID: {run.info.run_id}")
-        print(f"MSE: {mse:.4f}")
         print(f"RMSE: {rmse:.4f}")
         print(f"MAE: {mae:.4f}")
         print(f"R2 Score: {r2:.4f}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
