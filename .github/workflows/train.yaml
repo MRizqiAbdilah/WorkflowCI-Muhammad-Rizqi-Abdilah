@@ -31,8 +31,10 @@ jobs:
           pip install -r requirements.txt
       - name: Set MLflow Tracking URI
         run: |
-          export MLFLOW_TRACKING_URI=./mlruns
-          echo "MLflow Tracking URI set to ./mlruns"
+          export MLFLOW_TRACKING_URI=$GITHUB_WORKSPACE/mlruns
+          echo "MLflow Tracking URI set to $GITHUB_WORKSPACE/mlruns"
+        shell: bash
+
       - name: Run mlflow project
         run: |
           mlflow run . --env-manager=local
