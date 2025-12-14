@@ -11,18 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
-        run: echo "Starting MLflow training workflow..."
-
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12.7
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
 
-      - name: Check Python & pip
+      - name: Check Environment
         run: |
           python --version
           pip --version
@@ -30,11 +27,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Set MLflow Tracking URI
-        run: echo "MLFLOW_TRACKING_URI=$GITHUB_WORKSPACE/mlruns" >> $GITHUB_ENV
+      - name: Setup MLflow tracking
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/mlruns
+          echo "MLFLOW_TRACKING_URI=$GITHUB_WORKSPACE/mlruns" >> $GITHUB_ENV
+        shell: bash
 
-      - name: Create mlruns folder
-        run: mkdir -p $GITHUB_WORKSPACE/mlruns
+      - name: Create MLflow experiment
+        run: |
+          python - <<EOF
+          import mlflow
+          mlflow.set_tracking_uri("$GITHUB_WORKSPACE/mlruns")
+          mlflow.set_experiment("Default")  # otomatis bikin folder mlruns/0
+          EOF
+        shell: bash
 
       - name: Run MLflow project
         run: mlflow run . --env-manager=local
@@ -46,7 +52,7 @@ jobs:
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "Latest run ID is $RUN_ID"
 
-      - name: Upload MLflow Artifacts
+      - name: Upload MLflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
@@ -62,7 +68,7 @@ jobs:
           echo "model_id=$MODEL_ID" >> $GITHUB_OUTPUT
           echo "Latest model ID is $MODEL_ID"
 
-      - name: Build Docker Image from MLflow Model
+      - name: Build Docker image from MLflow model
         run: |
           mlflow models build-docker \
             -m $GITHUB_WORKSPACE/mlruns/0/models/${{ steps.get_model.outputs.model_id }}/artifacts \
@@ -74,7 +80,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Push Docker Image to Docker Hub
+      - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}
 
       - name: Complete job
