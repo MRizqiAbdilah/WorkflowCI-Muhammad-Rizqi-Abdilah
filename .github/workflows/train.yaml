@@ -97,27 +97,16 @@ jobs:
       # BUILD DOCKER IMAGE (BENAR)
       # =============================================================
 
-      - name: Get model directory
-        id: get_model
-        run: |
-          MODEL_DIR="mlruns/${{ steps.exp.outputs.experiment_id }}/${{ steps.get_run.outputs.run_id }}/artifacts/model"
-
-          if [ ! -d "$MODEL_DIR" ]; then
-            echo "Model directory not found!"
-            find mlruns -maxdepth 4 -type d
-            exit 1
-          fi
-
-          echo "model_dir=$MODEL_DIR" >> $GITHUB_OUTPUT
-          echo "Model dir: $MODEL_DIR"
-
       - name: Build Docker image
         run: |
           IMAGE_NAME="${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ steps.get_run.outputs.run_id }}"
-          echo "Building image: $IMAGE_NAME"
+          MODEL_URI="runs:/${{ steps.get_run.outputs.run_id }}/model"
+
+          echo "Building image from $MODEL_URI"
+          echo "Image name: $IMAGE_NAME"
 
           mlflow models build-docker \
-            --model-uri ${{ steps.get_model.outputs.model_dir }} \
+            --model-uri $MODEL_URI \
             --name $IMAGE_NAME
 
       # =============================================================
